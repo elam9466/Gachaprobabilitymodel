@@ -50,7 +50,7 @@ def currency_route():
         "total_pulls": pulls
     })
 
-# Main probability calculation 
+# Main probability calculation
 @app.route("/calculate", methods=["POST"])
 def calculate():
         data = request.get_json()
@@ -60,11 +60,11 @@ def calculate():
         game = GAMES.get(game_id)
         if not game:
             return jsonify({"error": "Game not found"}), 404
-        
+
         # Calculate total pulls
         total_pulls = currency // game["cost_per_pull"] + tickets
         rate = game["base_rate"]
-        
+
         # Use gachaModel to simulate the pulls
         if total_pulls == 0:
             success_positions = []
@@ -76,17 +76,17 @@ def calculate():
                 seed=random.randint(1, 10000)
             )
             success_positions = result.get("success_positions", []) if result else []
-        
+
         # Calculate statistics
         if success_positions:
-            avg_pulls = Average(success_positions)
+            avg_pulls = average(success_positions)
             median_pulls = median(success_positions)
             probability = (1 - (1 - rate) ** total_pulls) * 100 if total_pulls > 0 else 0
         else:
             avg_pulls = 0
             median_pulls = 0
             probability = 0
-        
+
         return jsonify({
                 "game": game["name"],
                 "total_pulls": total_pulls,
@@ -101,16 +101,16 @@ def histogram():
     data = request.get_json()
     game_id = data.get("game", "fgo")
     currency = int(data.get("currency", 0))
-    
+
     game = GAMES.get(game_id)
     if not game:
         return jsonify({"error": "Game not found"}), 404
-    
+
     if currency == 0:
         return jsonify({"error": "Currency must be greater than 0"}), 400
-    
+
     simulation = GachaSimulation(seed=random.randint(1, 999999))
-    
+
     try:
         result = simulation.simulate_histogram(
             currency=currency,
