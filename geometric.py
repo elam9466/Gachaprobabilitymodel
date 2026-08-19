@@ -1,8 +1,26 @@
 import math
 import random
-from Average import Average
-from Median import median
 from collections import Counter
+
+
+def average(values):
+    """Calculate the arithmetic mean of a list of numbers."""
+    if not values:
+        return 0
+    return sum(values) / len(values)
+
+
+def median(values):
+    """Calculate the median of a list of numbers."""
+    if not values:
+        return 0
+    sorted_vals = sorted(values)
+    n = len(sorted_vals)
+    mid = n // 2
+    if n % 2 == 0:
+        return (sorted_vals[mid - 1] + sorted_vals[mid]) / 2
+    return sorted_vals[mid]
+
 
 def gachaModel(
     currency: int,
@@ -28,7 +46,7 @@ def gachaModel(
     rollResults = []
 
     for roll in range(1, rolls + 1):
-        # Use custom rate if given else base rate
+        # Use custom rate if provided, otherwise fall back to flat base rate
         currentRate = custom_rate_calculator(roll) if custom_rate_calculator else rate
 
         if random.random() < currentRate:
@@ -72,33 +90,27 @@ def gachaModel(
                 "featured_name": None
             })
 
-    # after the pull loop, calculate gaps between SSRs
+    # Gaps between consecutive SSR hits (used for histogram binning)
     gaps = []
     prev = 0
     for p in pulls:
         gaps.append(p - prev)
         prev = p
 
-    # bin the gaps instead of positions
-    bin_size = max(1, math.floor(rollResults / 40))
-    bins = {i: 0 for i in range(1, rollResults + 1, bin_size)}
+    # Bin the gaps — FIX: was `rollResults / 40` (list ÷ int → TypeError),
+    # now correctly uses `rolls` (the integer pull count)
+    bin_size = max(1, math.floor(rolls / 40))
+    bins = {i: 0 for i in range(1, rolls + 1, bin_size)}
     for g in gaps:
         bin_key = ((g - 1) // bin_size) * bin_size + 1
         bins[bin_key] = bins.get(bin_key, 0) + 1
 
-    return {
-        "bins": bins,
-        "bin_size": bin_size,
-        "pulls": pulls,
-        "gaps": gaps,          # add this
-        "featured_positions": featuredSuccesses,
-        "total_rolls": rolls,
-    }
-
-    empMean = Average(pulls) if successes > 0 else 0
+    # Statistics — FIX: this block was unreachable dead code because of
+    # an early return above it; now everything feeds into a single return
+    empMean = average(pulls) if successes > 0 else 0
     empMedian = median(pulls) if successes > 0 else 0
-    theoMean = 1 / rate
-    theoVariance = (1 - rate) / (rate ** 2) if rate > 0 else 0 
+    theoMean = 1 / rate if rate > 0 else 0
+    theoVariance = (1 - rate) / (rate ** 2) if rate > 0 else 0
     empSuccessRate = successes / rolls if rolls > 0 else 0
     featuredRateEmp = featuredSuccesses / successes if successes > 0 else 0
 
@@ -121,5 +133,8 @@ def gachaModel(
         "featured_rate_empirical": featuredRateEmp,
         "pmf": pmf,
         "cdf": cdf,
-        "roll_details": rollResults
+        "roll_details": rollResults,
+        "bins": bins,
+        "bin_size": bin_size,
+        "gaps": gaps,
     }
