@@ -1,7 +1,5 @@
 from flask import Flask, request, jsonify, render_template
-from Average import Average
-from Median import median
-from geometric import gachaModel
+from geometric import gachaModel, average, median
 from FGO import FGOrate
 from Umamusume import UMArate
 from Histogram import GachaSimulation
